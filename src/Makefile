@@ -5,14 +5,15 @@ include ../apiai.mk
 include $(KALDI_PATH)/kaldi.mk
 
 LDFLAGS += $(CUDA_LDFLAGS)
-LDLIBS += -lfcgi -lfcgi++ $(CUDA_LDLIBS)
+LDLIBS += -lfcgi -lfcgi++ $(CUDA_LDLIBS) -lboost_system
 EXTRA_CXXFLAGS += -I$(KALDI_PATH) -L$(KALDI_PATH) $(APIAI_CXX_FLAGS)
+EXTRA_CXXFLAGS += -I../vendors/websocketpp -std=c++11
 
-OBJFILES = Timing.o Response.o RequestRawReader.o ResponseJsonWriter.o ResponseMultipartJsonWriter.o OnlineDecoder.o Nnet3LatgenFasterDecoder.o QueryStringParser.o IODecodingApp.o 
+OBJFILES = Timing.o Response.o RequestRawReader.o ResponseJsonWriter.o ResponseMultipartJsonWriter.o OnlineDecoder.o Nnet3LatgenFasterDecoder.o QueryStringParser.o IODecodingApp.o RequestChunkListReader.o
 
 LIBNAME = libstidecoder
 
-BINFILES = io-nnet3-decoder
+BINFILES = io-nnet3-decoder server
 
 TESTFILES = QueryStringParserTests
 
