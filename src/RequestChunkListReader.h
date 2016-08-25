@@ -44,6 +44,7 @@ public:
     bytes_per_sample_ = 16 / 8;
     channels_ = 1;
     channel_index_ = 0;
+    intermediateMillisecondsInterval_ = 500;
   }
 
   void feed(const std::vector<float> &data) {
@@ -52,20 +53,21 @@ public:
       (*chunk)(i) = data[i];
     }
     {
-      std::lock_guard<mutex> guard(chunk_queue_lock_);
+      lock_guard<mutex> guard(chunk_queue_lock_);
       chunk_queue_.push(chunk);
     }
+    chunk_queue_cond_.notify_one();
   }
 
 	virtual ~RequestChunkListReader() {};
 
 	/** Get number of samples per second of audio data */
 	virtual kaldi::int32 Frequency(void) const {
-    return frequency_; 
+    return frequency_;
   }
 
 	/** Get max number of expected result variants */
-	virtual kaldi::int32 BestCount(void) const = 0;
+	virtual kaldi::int32 BestCount(void) const { return 1; };
 	/** Get milliseconds interval between intermediate results.
 	 *  If non-positive given then no intermediate results would be calculated */
 	virtual kaldi::int32 IntermediateIntervalMillisec(void) const {
@@ -73,7 +75,7 @@ public:
   }
 
 	/** Get end-of-speech points detection flag. */
-	virtual bool DoEndpointing(void) const = 0;
+	virtual bool DoEndpointing(void) const { return true; }
 
 	/**
 	 * Get next chunk of audio data samples.
@@ -90,14 +92,17 @@ public:
 	virtual kaldi::SubVector<kaldi::BaseFloat> *NextChunk(kaldi::int32 samples_count, kaldi::int32 timeout_ms);
 
 private:
+  RequestChunkListReader(const RequestChunkListReader&);
+  RequestChunkListReader& operator=(const RequestChunkListReader&);
+
   kaldi::int32 frequency_;
   kaldi::int32 bytes_per_sample_;
   kaldi::int32 channels_;
   kaldi::int32 channel_index_;
 
   kaldi::int32 intermediateMillisecondsInterval_;
-  std::unique_ptr<kaldi::Vector<kaldi::BaseFloat>> current_chunk_ptr_;
-  std::queue<kaldi::Vector<kaldi::BaseFloat>*> chunk_queue_;
+  std::auto_ptr<kaldi::Vector<kaldi::BaseFloat> > current_chunk_ptr_;
+  std::queue<kaldi::Vector<kaldi::BaseFloat>* > chunk_queue_;
   mutex chunk_queue_lock_;
   condition_variable chunk_queue_cond_;
 };
