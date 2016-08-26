@@ -37,7 +37,7 @@ public:
 
 	virtual void RegisterOptions(kaldi::OptionsItf &po);
 	virtual bool Initialize(kaldi::OptionsItf &po);
-	virtual void Decode(Request &request, Response &response);
+	virtual std::string Decode(Request &request, Response &response);
 protected:
 	struct DecodedData;
 

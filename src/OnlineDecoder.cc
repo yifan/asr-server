@@ -145,7 +145,9 @@ bool OnlineDecoder::Initialize(kaldi::OptionsItf &po) {
 	return true;
 }
 
-void OnlineDecoder::Decode(Request &request, Response &response) {
+std::string OnlineDecoder::Decode(Request &request, Response &response) {
+	std::string requestInterrupted = Response::NOT_INTERRUPTED;
+
 	try {
 		KALDI_ASSERT(request.Frequency() == AUDIO_DATA_FREQUENCY);
 		milliseconds_t start_time = getMilliseconds();
@@ -166,7 +168,6 @@ void OnlineDecoder::Decode(Request &request, Response &response) {
 		kaldi::SubVector<kaldi::BaseFloat> *wave_part;
 
 		bool do_endpointing = request.DoEndpointing();
-		std::string requestInterrupted = Response::NOT_INTERRUPTED;
 		int samples_left = (max_samples_limit > 0) ? std::min(max_samples_limit, samples_per_chunk) : samples_per_chunk;
 		const bool decoding_timeout_enabled = decoding_timeout_seconds_ > 0;
 		const int decoding_timeout_ms = decoding_timeout_enabled ? decoding_timeout_seconds_ * 1000 : 0;
@@ -253,9 +254,11 @@ void OnlineDecoder::Decode(Request &request, Response &response) {
 		CleanUp();
 
 		KALDI_VLOG(1) << "Decode subroutine done";
+
 	} catch (std::runtime_error &e) {
 		response.SetError(e.what());
 	}
+	return requestInterrupted;
 };
 
 int32 OnlineDecoder::DecodeIntermediate(int bestCount, vector<DecodedData> *result) {

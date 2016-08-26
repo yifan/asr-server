@@ -20,6 +20,7 @@ namespace apiai {
 const std::string ResponseWebSocketJsonWriter::MIME_APPLICATION_JAVA = "application/json";
 
 void ResponseWebSocketJsonWriter::SendJson(std::string json, bool final) {
+	lock_guard<mutex> guard(hdl_mutex_);
 	server_->send(hdl_, json, websocketpp::frame::opcode::text);
 }
 
@@ -34,36 +35,36 @@ void ResponseWebSocketJsonWriter::SetResult(std::vector<RecognitionResult> &data
 	SetResult(data, NOT_INTERRUPTED, timeMarkMs);
 }
 
+//{"status": 0, "result": {"hypotheses": [{"transcript": "see on teine lause."}], "final": true}}
 void ResponseWebSocketJsonWriter::SetResult(std::vector<RecognitionResult> &data, const std::string &interrupted, int timeMarkMs) {
 
 	std::ostringstream msg;
 	msg << "{";
-	msg << "\"status\":\"ok\"";
-	msg << ",\"data\":[";
+	msg << "\"status\":0";
+	msg << ",\"result\":{\"hypotheses\":[{\"transcript\": \"";
 	for (int i = 0; i < data.size(); i++) {
-		if (i) {
-			msg << ",";
-		}
-		Write(msg, data.at(i));
-	}
-	msg << "]";
-	if (interrupted.size() > 0) {
-		msg << ",\"interrupted\":\"" << interrupted << "\"";
-		if (timeMarkMs > 0) {
-		    msg << ",\"time\":" << timeMarkMs;
+		msg << data.at(i).text;
+		if (i != data.size() - 1) {
+			msg << " ";
 		}
 	}
+	msg << "\"}]}";
+	msg << ",\"final\":true";
 	msg << "}";
+	std::cerr << "R " << msg.str() << std::endl;
 	SendJson(msg.str(), true);
 }
 
 void ResponseWebSocketJsonWriter::SetIntermediateResult(RecognitionResult &decodedData, int timeMarkMs) {
 	std::ostringstream msg;
 	msg << "{";
-	msg << "\"status\":\"intermediate\"";
-	msg << ",\"data\":[";
-	Write(msg, decodedData);
-	msg << "]}";
+	msg << "\"status\":0";
+	msg << ",\"result\":{\"hypotheses\":[{\"transcript\": \"";
+	msg << decodedData.text;
+	msg << "\"}]}";
+	msg << ",\"final\":false";
+	msg << "}";
+	std::cerr << "I " << msg.str() << std::endl;
 	SendJson(msg.str(), false);
 }
 

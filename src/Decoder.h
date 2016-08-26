@@ -36,7 +36,7 @@ public:
 	/** Initialize decoder */
 	virtual bool Initialize(kaldi::OptionsItf &po) = 0;
 	/** Perform decoding routine */
-	virtual void Decode(Request &request, Response &response) = 0;
+	virtual std::string Decode(Request &request, Response &response) = 0;
 };
 
 } /* namespace apiai */

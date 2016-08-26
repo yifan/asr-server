@@ -4,6 +4,8 @@
 #include "RequestChunkListReader.h"
 #include "Nnet3LatgenFasterDecoder.h"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 #include <websocketpp/common/thread.hpp>
@@ -29,6 +31,8 @@ class WebSocketServer {
  public:
   WebSocketServer(Decoder &decoder) : port_(8888), decoder_(decoder),
     request(new RequestChunkListReader()) {
+
+    response.reset( new ResponseWebSocketJsonWriter(&server_));
 
     server_.init_asio();
 
@@ -85,7 +89,8 @@ class WebSocketServer {
   void decoderThread() {
     KALDI_WARN << "Decoder entered" << std::endl;
     try {
-      decoder_.Decode(*(request.get()), *(response.get()));
+      while (decoder_.Decode(*(request.get()), *(response.get())) == Response::INTERRUPTED_END_OF_SPEECH) {
+      };
     } catch (std::exception &e) {
       KALDI_LOG << "Fatal exception: " << e.what();
     }
@@ -97,12 +102,14 @@ class WebSocketServer {
     std::string filename = con->get_resource();
     std::cerr << "OPEN from connection " << filename << std::endl;
     if (filename == "/client/ws/status") {
-      std::cerr << "OPEN /client/ws/status from connection " << filename << std::endl;
+      KALDI_WARN << "OPEN /client/ws/status from connection " << filename << std::endl;
       lock_guard<mutex> guard(listener_lock_);
       // status_listeners_.insert(hdl);
-    } else if (filename == "/client/ws/speech") {
-      response.reset(new ResponseWebSocketJsonWriter(&server_, hdl));
+    } else {
+      response->SetHdl(hdl);
+      KALDI_WARN << "OPEN /client/ws/speech from connection " << filename << std::endl;
     }
+
   }
 
   void onClose(connection_hdl hdl) {
@@ -122,11 +129,10 @@ class WebSocketServer {
       if (msg->get_opcode() == websocketpp::frame::opcode::text) {
         std::cout << "MESSAGE: " << msg->get_payload() << std::endl;
         if (msg->get_payload() == "EOF") {
-          //request->feed(std::vector<float>(0));
+          request->feed(std::vector<float>(0));
         }
       } else {
         int size = msg->get_payload().size() / 2;
-        std::cout << "GOT " << size << " samples " << std::endl;
         const short *raw = reinterpret_cast<const short *>(msg->get_payload().c_str());
         std::vector<float> frame(size);
 

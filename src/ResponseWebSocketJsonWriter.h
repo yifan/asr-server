@@ -23,6 +23,8 @@
 typedef websocketpp::server<websocketpp::config::asio> server;
 
 using websocketpp::connection_hdl;
+using websocketpp::lib::mutex;
+using websocketpp::lib::lock_guard;
 
 namespace apiai {
 
@@ -31,7 +33,7 @@ namespace apiai {
  */
 class ResponseWebSocketJsonWriter : public Response {
 public:
-	ResponseWebSocketJsonWriter(server *serve, connection_hdl hdl) : hdl_(hdl), server_(serve) {}
+	ResponseWebSocketJsonWriter(server *serve) : server_(serve) {}
 	virtual ~ResponseWebSocketJsonWriter() {};
 
 	virtual const std::string &GetContentType() { return MIME_APPLICATION_JAVA; }
@@ -40,6 +42,7 @@ public:
 	virtual void SetResult(std::vector<RecognitionResult> &data, const std::string &interrupted, int timeMarkMs);
 	virtual void SetIntermediateResult(RecognitionResult &decodedData, int timeMarkMs);
 	virtual void SetError(const std::string &message);
+	virtual void SetHdl(connection_hdl hdl) { lock_guard<mutex> guard(hdl_mutex_); hdl_ = hdl; }
 protected:
 
 	virtual void SendJson(std::string json, bool final);
@@ -49,6 +52,8 @@ private:
 	static const std::string MIME_APPLICATION_JAVA;
 	connection_hdl hdl_;
 	server *server_;
+	mutex hdl_mutex_;
+
 };
 
 } /* namespace apiai */
