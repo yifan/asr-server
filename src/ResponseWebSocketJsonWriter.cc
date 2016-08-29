@@ -48,8 +48,7 @@ void ResponseWebSocketJsonWriter::SetResult(std::vector<RecognitionResult> &data
 			msg << " ";
 		}
 	}
-	msg << "\"}]}";
-	msg << ",\"final\":true";
+	msg << "\"}], \"final\":true}";
 	msg << "}";
 	std::cerr << "R " << msg.str() << std::endl;
 	SendJson(msg.str(), true);
