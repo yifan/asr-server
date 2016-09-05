@@ -106,7 +106,6 @@ class WebSocketServer {
       lock_guard<mutex> guard(listener_lock_);
       // status_listeners_.insert(hdl);
     } else {
-      response->SetHdl(hdl);
       KALDI_WARN << "OPEN /client/ws/speech from connection " << filename << std::endl;
     }
 
@@ -121,6 +120,7 @@ class WebSocketServer {
       lock_guard<mutex> guard(listener_lock_);
       // status_listeners_.erase(hdl);
     } else if (filename == "/client/ws/speech") {
+      response->SetHdl(hdl);
     }
   }
 
